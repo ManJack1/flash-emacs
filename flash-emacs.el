@@ -271,12 +271,15 @@ This helps maintain label stability as you type more characters."
                           :weight 'bold
                           :box nil))
     (while rainbow-faces
-      (set-face-attribute (pop rainbow-faces) nil
-                          :inherit nil
-                          :foreground label-fg
-                          :background (or (pop rainbow-bgs) label-bg)
-                          :weight 'bold
-                          :box nil))))
+      (let ((face (pop rainbow-faces))
+            (bg (or (pop rainbow-bgs) label-bg)))
+        (when (facep face)
+          (set-face-attribute face nil
+                              :inherit nil
+                              :foreground label-fg
+                              :background bg
+                              :weight 'bold
+                              :box nil))))))
 
 (defun flash-emacs--theme-sync-advice (&rest _)
   "Refresh flash-emacs faces after a theme change."
