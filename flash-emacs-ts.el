@@ -479,4 +479,7 @@ Use as: yS to yank a treesitter node, dS to delete, cS to change."
 
 (provide 'flash-emacs-ts)
 
+(when (fboundp 'flash-emacs-apply-theme)
+  (flash-emacs-apply-theme))
+
 ;;; flash-emacs-ts.el ends here

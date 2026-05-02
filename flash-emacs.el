@@ -139,6 +139,116 @@ This helps maintain label stability as you type more characters."
   "Face used to dim the background text during flash-emacs-jump."
   :group 'flash-emacs)
 
+(defvar flash-emacs--theme-sync-installed nil
+  "Non-nil once flash-emacs theme sync hooks have been installed.")
+
+(defun flash-emacs--face-attr (face attribute &optional fallback)
+  "Return FACE ATTRIBUTE, falling back to FALLBACK when unspecified."
+  (let ((value (face-attribute face attribute nil 'default)))
+    (if (eq value 'unspecified)
+        fallback
+      value)))
+
+(defun flash-emacs--theme-colors ()
+  "Return theme-derived colors for flash-emacs faces."
+  (let* ((default-fg (or (flash-emacs--face-attr 'default :foreground nil) "black"))
+         (default-bg (or (flash-emacs--face-attr 'default :background nil) "white"))
+         (label-bg (or (flash-emacs--face-attr 'isearch :background nil)
+                       (flash-emacs--face-attr 'highlight :background nil)
+                       default-fg))
+         (label-fg (or (flash-emacs--face-attr 'isearch :foreground nil)
+                       default-bg))
+         (match-bg (or (flash-emacs--face-attr 'lazy-highlight :background nil)
+                       (flash-emacs--face-attr 'highlight :background nil)
+                       label-bg))
+         (match-fg (or (flash-emacs--face-attr 'lazy-highlight :foreground nil)
+                       default-fg))
+         (dim-fg (or (flash-emacs--face-attr 'shadow :foreground nil)
+                     (flash-emacs--face-attr 'font-lock-comment-face :foreground nil)
+                     default-fg))
+         (rainbow-bgs
+          (list (or (flash-emacs--face-attr 'font-lock-keyword-face :foreground nil) label-bg)
+                (or (flash-emacs--face-attr 'font-lock-function-name-face :foreground nil) label-bg)
+                (or (flash-emacs--face-attr 'font-lock-string-face :foreground nil) label-bg)
+                (or (flash-emacs--face-attr 'font-lock-type-face :foreground nil) label-bg)
+                (or (flash-emacs--face-attr 'font-lock-constant-face :foreground nil) label-bg)
+                (or (flash-emacs--face-attr 'warning :foreground nil) label-bg)
+                (or (flash-emacs--face-attr 'success :foreground nil) label-bg)
+                (or (flash-emacs--face-attr 'font-lock-builtin-face :foreground nil) label-bg)
+                (or (flash-emacs--face-attr 'font-lock-variable-name-face :foreground nil) label-bg))))
+    (list :label-bg label-bg
+          :label-fg label-fg
+          :match-bg match-bg
+          :match-fg match-fg
+          :dim-fg dim-fg
+          :rainbow-bgs rainbow-bgs)))
+
+(defun flash-emacs-apply-theme ()
+  "Refresh flash-emacs faces from the active theme."
+  (let* ((colors (flash-emacs--theme-colors))
+         (label-bg (plist-get colors :label-bg))
+         (label-fg (plist-get colors :label-fg))
+         (match-bg (plist-get colors :match-bg))
+         (match-fg (plist-get colors :match-fg))
+         (dim-fg (plist-get colors :dim-fg))
+         (rainbow-bgs (plist-get colors :rainbow-bgs))
+         (rainbow-faces
+          '(flash-emacs-ts-rainbow-1
+            flash-emacs-ts-rainbow-2
+            flash-emacs-ts-rainbow-3
+            flash-emacs-ts-rainbow-4
+            flash-emacs-ts-rainbow-5
+            flash-emacs-ts-rainbow-6
+            flash-emacs-ts-rainbow-7
+            flash-emacs-ts-rainbow-8
+            flash-emacs-ts-rainbow-9)))
+    (set-face-attribute 'flash-emacs-label nil
+                        :inherit nil
+                        :foreground label-fg
+                        :background label-bg
+                        :weight 'bold
+                        :box nil)
+    (set-face-attribute 'flash-emacs-match nil
+                        :inherit nil
+                        :foreground match-fg
+                        :background match-bg
+                        :weight 'normal)
+    (set-face-attribute 'flash-emacs-dim-face nil
+                        :inherit '(shadow font-lock-comment-face)
+                        :foreground dim-fg
+                        :background 'unspecified
+                        :weight 'unspecified
+                        :slant 'unspecified
+                        :underline nil
+                        :strike-through nil)
+    (when (facep 'flash-emacs-ts-label)
+      (set-face-attribute 'flash-emacs-ts-label nil
+                          :inherit 'flash-emacs-label
+                          :foreground label-fg
+                          :background label-bg
+                          :weight 'bold
+                          :box nil))
+    (dolist (face rainbow-faces)
+      (when (facep face)
+        (set-face-attribute face nil
+                            :inherit nil
+                            :foreground label-fg
+                            :background (or (pop rainbow-bgs) label-bg)
+                            :weight 'bold
+                            :box nil)))))
+
+(defun flash-emacs--theme-sync-advice (&rest _)
+  "Refresh flash-emacs faces after a theme change."
+  (flash-emacs-apply-theme))
+
+(defun flash-emacs--install-theme-sync ()
+  "Install theme refresh hooks for flash-emacs."
+  (unless flash-emacs--theme-sync-installed
+    (setq flash-emacs--theme-sync-installed t)
+    (advice-add 'load-theme :after #'flash-emacs--theme-sync-advice)
+    (advice-add 'enable-theme :after #'flash-emacs--theme-sync-advice)
+    (advice-add 'disable-theme :after #'flash-emacs--theme-sync-advice)))
+
 ;;; Flash icon
 
 (defconst flash-emacs-icon-xpm
@@ -673,6 +783,9 @@ Returns (action . value) where action is exit, backspace, add-char, or nil."
           (flash-emacs--clear-dim-overlays))))))
 
 (provide 'flash-emacs)
+
+(flash-emacs--install-theme-sync)
+(flash-emacs-apply-theme)
 
 ;;; Load submodules after flash-emacs is fully provided
 ;; This happens after byte-compilation, so no circular dependency
