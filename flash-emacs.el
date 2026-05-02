@@ -149,40 +149,73 @@ This helps maintain label stability as you type more characters."
         fallback
       value)))
 
-(defun flash-emacs--strong-foreground (&optional dark light)
-  "Return a high-contrast foreground for the current theme."
-  (if (eq (frame-parameter nil 'background-mode) 'dark)
-      (or dark "#ffffff")
-    (or light "#000000")))
+(defun flash-emacs--theme-face-background (face)
+  "Return FACE background, or nil when FACE is unavailable."
+  (when (facep face)
+    (face-background face nil t)))
+
+(defun flash-emacs--theme-face-foreground (face)
+  "Return FACE foreground, or nil when FACE is unavailable."
+  (when (facep face)
+    (face-foreground face nil t)))
+
+(defun flash-emacs--palette-color (name)
+  "Return palette color NAME when the host config exposes one."
+  (when (fboundp 'my/palette-color)
+    (funcall 'my/palette-color name)))
 
 (defun flash-emacs--theme-colors ()
   "Return theme-derived colors for flash-emacs faces."
-  (let* ((default-fg (or (flash-emacs--face-attr 'default :foreground nil) "black"))
-         (label-bg (or (flash-emacs--face-attr 'error :foreground nil)
-                       (flash-emacs--face-attr 'isearch :background nil)
-                       (flash-emacs--face-attr 'font-lock-keyword-face :foreground nil)
+  (let* ((default-fg (or (flash-emacs--theme-face-foreground 'default) "black"))
+         (default-bg (or (flash-emacs--theme-face-background 'default) "white"))
+         (label-bg (or (flash-emacs--theme-face-background 'nano-face-tag-salient)
+                       (flash-emacs--palette-color 'cyan)
+                       (flash-emacs--theme-face-background 'isearch)
+                       (flash-emacs--theme-face-background 'highlight)
                        default-fg))
-         (label-fg (or (flash-emacs--face-attr 'isearch :foreground nil)
-                       (flash-emacs--strong-foreground)))
-         (match-bg (or (flash-emacs--face-attr 'warning :foreground nil)
-                       (flash-emacs--face-attr 'lazy-highlight :background nil)
-                       (flash-emacs--face-attr 'highlight :background nil)
-                       default-fg))
-         (match-fg (or (flash-emacs--face-attr 'lazy-highlight :foreground nil)
-                       (flash-emacs--strong-foreground)))
-         (dim-fg (or (flash-emacs--face-attr 'shadow :foreground nil)
-                     (flash-emacs--face-attr 'font-lock-comment-face :foreground nil)
+         (label-fg (or (flash-emacs--theme-face-foreground 'nano-face-tag-salient)
+                       default-bg
+                       (flash-emacs--palette-color 'bg-main)))
+         (match-bg (or (flash-emacs--theme-face-background 'lazy-highlight)
+                       (flash-emacs--palette-color 'bg-completion)
+                       (flash-emacs--theme-face-background 'highlight)
+                       label-bg))
+         (match-fg (or (flash-emacs--theme-face-foreground 'lazy-highlight)
+                       default-fg
+                       (flash-emacs--palette-color 'fg-main)))
+         (dim-fg (or (flash-emacs--theme-face-foreground 'nano-face-faded)
+                     (flash-emacs--palette-color 'fg-unfocused)
+                     (flash-emacs--theme-face-foreground 'shadow)
+                     (flash-emacs--theme-face-foreground 'font-lock-comment-face)
                      default-fg))
          (rainbow-bgs
-          (list (or (flash-emacs--face-attr 'error :foreground nil) label-bg)
-                (or (flash-emacs--face-attr 'warning :foreground nil) match-bg)
-                (or (flash-emacs--face-attr 'success :foreground nil) label-bg)
-                (or (flash-emacs--face-attr 'font-lock-keyword-face :foreground nil) label-bg)
-                (or (flash-emacs--face-attr 'font-lock-function-name-face :foreground nil) label-bg)
-                (or (flash-emacs--face-attr 'font-lock-string-face :foreground nil) label-bg)
-                (or (flash-emacs--face-attr 'font-lock-type-face :foreground nil) label-bg)
-                (or (flash-emacs--face-attr 'font-lock-builtin-face :foreground nil) label-bg)
-                (or (flash-emacs--face-attr 'font-lock-variable-name-face :foreground nil) label-bg))))
+          (list (or (flash-emacs--palette-color 'magenta)
+                    (flash-emacs--theme-face-foreground 'font-lock-keyword-face)
+                    label-bg)
+                (or (flash-emacs--palette-color 'cyan)
+                    (flash-emacs--theme-face-foreground 'font-lock-function-name-face)
+                    label-bg)
+                (or (flash-emacs--palette-color 'yellow)
+                    (flash-emacs--theme-face-foreground 'font-lock-string-face)
+                    label-bg)
+                (or (flash-emacs--palette-color 'green)
+                    (flash-emacs--theme-face-foreground 'font-lock-type-face)
+                    label-bg)
+                (or (flash-emacs--palette-color 'blue)
+                    (flash-emacs--theme-face-foreground 'font-lock-constant-face)
+                    label-bg)
+                (or (flash-emacs--palette-color 'red)
+                    (flash-emacs--theme-face-foreground 'warning)
+                    label-bg)
+                (or (flash-emacs--palette-color 'magenta)
+                    (flash-emacs--theme-face-foreground 'success)
+                    label-bg)
+                (or (flash-emacs--palette-color 'cyan)
+                    (flash-emacs--theme-face-foreground 'font-lock-builtin-face)
+                    label-bg)
+                (or (flash-emacs--palette-color 'yellow)
+                    (flash-emacs--theme-face-foreground 'font-lock-variable-name-face)
+                    label-bg))))
     (list :label-bg label-bg
           :label-fg label-fg
           :match-bg match-bg
@@ -193,7 +226,6 @@ This helps maintain label stability as you type more characters."
 (defun flash-emacs-apply-theme ()
   "Refresh flash-emacs faces from the active theme."
   (let* ((colors (flash-emacs--theme-colors))
-         (default-bg (or (flash-emacs--face-attr 'default :background nil) "white"))
          (label-bg (plist-get colors :label-bg))
          (label-fg (plist-get colors :label-fg))
          (match-bg (plist-get colors :match-bg))
@@ -215,14 +247,16 @@ This helps maintain label stability as you type more characters."
                         :foreground label-fg
                         :background label-bg
                         :weight 'bold
-                        :box `(:line-width -1 :color ,label-fg))
+                        :box nil)
     (set-face-attribute 'flash-emacs-match nil
                         :inherit nil
                         :foreground match-fg
                         :background match-bg
-                        :weight 'bold)
+                        :weight 'normal)
     (set-face-attribute 'flash-emacs-dim-face nil
-                        :inherit '(shadow font-lock-comment-face)
+                        :inherit (if (facep 'nano-face-faded)
+                                     '(shadow nano-face-faded)
+                                   '(shadow font-lock-comment-face))
                         :foreground dim-fg
                         :background 'unspecified
                         :weight 'unspecified
@@ -235,15 +269,14 @@ This helps maintain label stability as you type more characters."
                           :foreground label-fg
                           :background label-bg
                           :weight 'bold
-                          :box `(:line-width -1 :color ,label-fg)))
-    (dolist (face rainbow-faces)
-      (when (facep face)
-        (set-face-attribute face nil
-                            :inherit nil
-                            :foreground (flash-emacs--strong-foreground)
-                            :background (or (pop rainbow-bgs) label-bg)
-                            :weight 'bold
-                            :box `(:line-width -1 :color ,default-bg))))))
+                          :box nil))
+    (while rainbow-faces
+      (set-face-attribute (pop rainbow-faces) nil
+                          :inherit nil
+                          :foreground label-fg
+                          :background (or (pop rainbow-bgs) label-bg)
+                          :weight 'bold
+                          :box nil))))
 
 (defun flash-emacs--theme-sync-advice (&rest _)
   "Refresh flash-emacs faces after a theme change."
