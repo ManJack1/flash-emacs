@@ -99,3 +99,7 @@ Below is an example if "better-jump" package is used:
 
 * Reference 
 + [[https://github.com/folke/flash.nvim][flash.nvim]]
+
+* Fork
+
+This fork is maintained at [[https://github.com/ManJack1/flash-emacs][ManJack1/flash-emacs]].

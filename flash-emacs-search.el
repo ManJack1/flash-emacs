@@ -6,7 +6,7 @@
 ;; Version: 1.0.0
 ;; Package-Requires: ((emacs "26.1") (flash-emacs "1.0.0"))
 ;; Keywords: navigation, jump, search, convenience
-;; URL: https://github.com/flash-emacs/flash-emacs
+;; URL: https://github.com/ManJack1/flash-emacs
 
 ;;; Commentary:
 

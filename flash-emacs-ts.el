@@ -3,11 +3,11 @@
 ;; Copyright (C) 2024 Free Software Foundation, Inc.
 
 ;; Author: Jiawei Chen
-;; Maintainer: Jiawei Chen
+;; Maintainer: ManJack1
 ;; Version: 1.0.0
 ;; Package-Requires: ((emacs "29.1") (flash-emacs "1.0.0"))
 ;; Keywords: navigation, jump, treesitter, convenience
-;; URL: https://github.com/flash-emacs/flash-emacs
+;; URL: https://github.com/ManJack1/flash-emacs
 
 ;;; Commentary:
 
